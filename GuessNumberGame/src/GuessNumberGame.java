@@ -8,8 +8,8 @@ public class GuessNumberGame {
 
         boolean playAgain = true;
         while (playAgain) {
-            int[] range = chooseDifficulty(scanner); // выбор сложности
-            playRound(scanner, range[0], range[1]);
+            GameConfig config = chooseDifficulty(scanner); // выбор сложности
+            playRound(scanner, config);
             playAgain = askPlayAgain(scanner);
         }
 
@@ -17,33 +17,49 @@ public class GuessNumberGame {
         scanner.close();
     }
 
-    // выбор уровня сложности
-    private static int[] chooseDifficulty(Scanner scanner) {
+    // Конфигурация игры (диапазон + попытки)
+    static class GameConfig {
+        int min;
+        int max;
+        int attemptsLimit;
+
+        GameConfig(int min, int max, int attemptsLimit) {
+            this.min = min;
+            this.max = max;
+            this.attemptsLimit = attemptsLimit;
+        }
+    }
+
+    // Выбор уровня сложности
+    private static GameConfig chooseDifficulty(Scanner scanner) {
         while (true) {
             System.out.println("Выберите уровень сложности:");
-            System.out.println("1 - Лёгкий (1–50)");
-            System.out.println("2 - Средний (1–100)");
-            System.out.println("3 - Сложный (1–500)");
+            System.out.println("1 - Лёгкий (1–50, 10 попыток)");
+            System.out.println("2 - Средний (1–100, 7 попыток)");
+            System.out.println("3 - Сложный (1–500, 5 попыток)");
             System.out.print("Ваш выбор: ");
 
             String choice = scanner.nextLine().trim();
             switch (choice) {
-                case "1": return new int[]{1, 50};
-                case "2": return new int[]{1, 100};
-                case "3": return new int[]{1, 500};
+                case "1": return new GameConfig(1, 50, 10);
+                case "2": return new GameConfig(1, 100, 7);
+                case "3": return new GameConfig(1, 500, 5);
                 default:
                     System.out.println("Некорректный ввод. Введите 1, 2 или 3.");
             }
         }
     }
 
-    private static void playRound(Scanner scanner, int min, int max) {
+    private static void playRound(Scanner scanner, GameConfig config) {
         Random rand = new Random();
-        int secret = rand.nextInt(max - min + 1) + min;
+        int secret = rand.nextInt(config.max - config.min + 1) + config.min;
         int attempts = 0;
-        System.out.printf("Я загадал число от %d до %d. Попробуй угадать!\n", min, max);
 
-        while (true) {
+        System.out.printf("Я загадал число от %d до %d. У вас %d %s.\n",
+                config.min, config.max, config.attemptsLimit,
+                attemptsWord(config.attemptsLimit));
+
+        while (attempts < config.attemptsLimit) {
             System.out.print("Введи число: ");
             String line = scanner.nextLine().trim();
 
@@ -62,8 +78,9 @@ public class GuessNumberGame {
 
             attempts++;
 
-            if (guess < min || guess > max) {
-                System.out.printf("Число вне диапазона %d..%d. Попробуйте снова.\n", min, max);
+            if (guess < config.min || guess > config.max) {
+                System.out.printf("Число вне диапазона %d..%d. Попробуйте снова.\n",
+                        config.min, config.max);
                 continue;
             }
 
@@ -74,9 +91,12 @@ public class GuessNumberGame {
             } else {
                 System.out.printf("Правильно! Вы угадали число %d за %d %s.\n",
                         secret, attempts, attemptsWord(attempts));
-                break;
+                return;
             }
         }
+
+        // Если попытки закончились
+        System.out.printf("Попытки закончились! Загаданное число было: %d.\n", secret);
     }
 
     private static boolean askPlayAgain(Scanner scanner) {
